@@ -578,13 +578,13 @@ class Game {
             return;
         }
         
-        // 最前列のボールを選択（x座標が最も小さいもの）
-        const targetBall = availableBalls.reduce((prev, current) => 
-            (current.x < prev.x) ? current : prev, availableBalls[0]);
+        // 動いていない玉からランダムに選択
+        const randomIndex = Math.floor(Math.random() * availableBalls.length);
+        const targetBall = availableBalls[randomIndex];
         
         console.log("選択されたCPUボール:", targetBall);
         
-        // 穴に向かって発射
+        // 穴に向かって発射（まっすぐ穴を狙う）
         const dx = this.hole.x - targetBall.x;
         const dy = this.hole.y - targetBall.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
