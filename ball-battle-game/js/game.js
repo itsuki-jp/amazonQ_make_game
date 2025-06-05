@@ -114,6 +114,7 @@ class Game {
         this.currentMouseY = null;
         this.gameOver = false;
         this.cpuActionScheduled = false;
+        this.gameStarted = false;
         
         // スコア表示要素
         this.playerScoreElement = document.getElementById('playerScore');
@@ -268,6 +269,18 @@ class Game {
         this.currentBall = null;
         this.currentMouseX = null;
         this.currentMouseY = null;
+        
+        // プレイヤーの行動後、他のボールが動いていなければCPUの行動をスケジュール
+        if (!this.isAnyBallMoving()) {
+            // ランダムな待機時間を設定
+            const waitTime = 1000 + Math.random() * 1000; // 1〜2秒のランダムな待機時間
+            setTimeout(() => {
+                if (!this.gameOver && !this.isAnyBallMoving() && !this.isDragging && !this.cpuActionScheduled) {
+                    this.cpuActionScheduled = true;
+                    this.forceCPUAction();
+                }
+            }, waitTime);
+        }
     }
     
     /**
@@ -527,15 +540,17 @@ class Game {
         this.update();
         this.draw();
         
-        // ボールが停止している場合はCPUの行動を実行（自由行動モード）
-        if (!this.isAnyBallMoving() && !this.cpuActionScheduled && !this.gameOver && !this.isDragging) {
-            console.log("ボールが停止しているためCPUの行動を実行");
-            this.cpuActionScheduled = true;
+        // ゲーム開始時にCPUの行動をスケジュール（最初の一回だけ）
+        if (!this.gameStarted && !this.cpuActionScheduled && !this.gameOver) {
+            this.gameStarted = true;
             
-            // 少し遅延させてCPUの行動を実行（視覚的にわかりやすくするため）
+            // 少し遅延させてCPUの行動を実行
             setTimeout(() => {
-                this.forceCPUAction();
-            }, 1000);
+                if (!this.isDragging && !this.isAnyBallMoving()) {
+                    this.cpuActionScheduled = true;
+                    this.forceCPUAction();
+                }
+            }, 2000);
         }
         
         requestAnimationFrame(this.gameLoop.bind(this));
@@ -582,20 +597,21 @@ class Game {
         
         console.log("CPUボールに速度を設定:", targetBall.vx, targetBall.vy);
         
-        // プレイヤーのターンに戻す（ボールが停止した後）
+        // ボールが停止するまで待つ
         const checkBallsStopped = () => {
             if (!this.isAnyBallMoving() && !this.isDragging) {
                 this.cpuActionScheduled = false;
                 console.log("CPUの行動完了");
                 
-                // 次のCPUの行動をスケジュール
+                // 次のCPUの行動をスケジュール（ランダムな待機時間を設定）
+                const waitTime = 1000 + Math.random() * 2000; // 1〜3秒のランダムな待機時間
                 setTimeout(() => {
                     if (!this.gameOver && !this.isAnyBallMoving() && !this.isDragging) {
                         this.forceCPUAction();
                     } else {
                         this.cpuActionScheduled = false;
                     }
-                }, 1000);
+                }, waitTime);
             } else {
                 // まだボールが動いている場合は再チェック
                 setTimeout(checkBallsStopped, 500);
