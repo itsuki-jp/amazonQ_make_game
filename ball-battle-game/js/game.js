@@ -248,6 +248,8 @@ class Game {
         this.currentBall.vy = -(dy / distance) * speed;
         this.currentBall.isMoving = true;
         
+        console.log("プレイヤーのボールを発射:", this.currentBall.vx, this.currentBall.vy);
+        
         this.isDragging = false;
         this.currentBall = null;
         this.currentMouseX = null;
@@ -256,6 +258,7 @@ class Game {
         // プレイヤーのターンは継続（別の玉を打てるようにする）
         // ただし、すべての玉が動いている場合はCPUのターンに移行
         if (this.playerBalls.every(ball => ball.isMoving || ball.scored)) {
+            console.log("すべてのプレイヤーボールが動いているか得点済み、CPUターンに移行");
             this.playerTurn = false;
             // CPUの行動をスケジュール
             this.scheduleCPUAction();
@@ -266,16 +269,23 @@ class Game {
      * CPUの行動をスケジュールする
      */
     scheduleCPUAction() {
+        console.log("CPUの行動をスケジュール");
+        
         // すべてのボールが停止するまで待つ
         if (this.isAnyBallMoving()) {
+            console.log("ボールが動いているため待機中...");
             setTimeout(() => this.scheduleCPUAction(), 100);
             return;
         }
         
+        console.log("すべてのボールが停止、CPUの行動を準備");
+        
         // CPUの行動を遅延させる
         this.cpuActionTimer = setTimeout(() => {
+            console.log("CPUの行動を開始");
             this.cpuAction();
             this.playerTurn = true;
+            console.log("プレイヤーのターンに切り替え");
         }, 1000);
     }
     
@@ -283,13 +293,20 @@ class Game {
      * CPUの行動を実行する
      */
     cpuAction() {
+        console.log("CPUの行動を実行");
+        
         // 動かせるCPUのボールを探す
         const availableBalls = this.cpuBalls.filter(ball => !ball.scored && !ball.isMoving);
-        if (availableBalls.length === 0) return;
+        if (availableBalls.length === 0) {
+            console.log("動かせるCPUのボールがありません");
+            return;
+        }
         
         // 最前列のボールを選択（x座標が最も小さいもの）
         const targetBall = availableBalls.reduce((prev, current) => 
             (current.x < prev.x) ? current : prev, availableBalls[0]);
+        
+        console.log("選択されたCPUボール:", targetBall);
         
         // 穴に向かって発射
         const dx = this.hole.x - targetBall.x;
@@ -305,6 +322,8 @@ class Game {
         targetBall.vx = (dx / distance) * speed * Math.cos(randomAngle);
         targetBall.vy = (dy / distance) * speed * Math.sin(randomAngle);
         targetBall.isMoving = true;
+        
+        console.log("CPUボールに速度を設定:", targetBall.vx, targetBall.vy);
     }
     
     /**
@@ -380,10 +399,6 @@ class Game {
         this.playerBalls.forEach(ball => {
             if (!ball.scored && ball.x > this.canvas.width / 2) {
                 ball.scored = true;
-                // 得点したボールは動きを止める
-                ball.isMoving = false;
-                ball.vx = 0;
-                ball.vy = 0;
                 this.updateScoreDisplay();
             }
         });
@@ -391,10 +406,6 @@ class Game {
         this.cpuBalls.forEach(ball => {
             if (!ball.scored && ball.x < this.canvas.width / 2) {
                 ball.scored = true;
-                // 得点したボールは動きを止める
-                ball.isMoving = false;
-                ball.vx = 0;
-                ball.vy = 0;
                 this.updateScoreDisplay();
             }
         });
@@ -430,37 +441,24 @@ class Game {
         this.ctx.lineWidth = 1;
         this.ctx.stroke();
         
-        // 壁を描画
+        // ボールを描画
+        [...this.playerBalls, ...this.cpuBalls].forEach(ball => {
+            // すべてのボールを表示
+            ball.draw(this.ctx);
+        });
+        
+        // 壁を描画（ボールの上に表示）
         this.wall.draw(this.ctx);
         
         // 穴を描画
         this.hole.draw(this.ctx);
         
-        // ボールを描画
-        [...this.playerBalls, ...this.cpuBalls].forEach(ball => {
-            // 相手陣地に入った玉も表示し続ける
-            ball.draw(this.ctx);
-            
-            // 得点済みのボールには特別なマーカーを表示
-            if (ball.scored) {
-                this.ctx.beginPath();
-                this.ctx.arc(ball.x, ball.y, ball.radius / 2, 0, Math.PI * 2);
-                this.ctx.fillStyle = '#fff';
-                this.ctx.fill();
-                this.ctx.closePath();
-            }
-        });
-        
-        // ターン表示
-        this.ctx.font = '20px Arial';
-        this.ctx.fillStyle = '#333';
-        this.ctx.textAlign = 'center';
+        // ゲーム終了時のみメッセージを表示
         if (this.gameOver) {
+            this.ctx.font = '20px Arial';
+            this.ctx.fillStyle = '#333';
+            this.ctx.textAlign = 'center';
             this.ctx.fillText('ゲーム終了', this.canvas.width / 2, 30);
-        } else if (this.playerTurn) {
-            this.ctx.fillText('プレイヤーのターン', this.canvas.width / 2, 30);
-        } else {
-            this.ctx.fillText('CPUのターン', this.canvas.width / 2, 30);
         }
         
         // ドラッグ中の矢印を描画（最後に描画して他の要素に上書きされないようにする）
