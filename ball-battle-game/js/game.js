@@ -112,7 +112,6 @@ class Game {
         this.currentBall = null;
         this.currentMouseX = null;
         this.currentMouseY = null;
-        this.playerTurn = true;
         this.gameOver = false;
         this.cpuActionScheduled = false;
         
@@ -130,7 +129,7 @@ class Game {
         this.cpuActionTimer = null;
         
         // デバッグモード
-        this.debugMode = true;
+        this.debugMode = false;
         
         // ゲームループの開始
         this.gameLoop();
@@ -269,30 +268,6 @@ class Game {
         this.currentBall = null;
         this.currentMouseX = null;
         this.currentMouseY = null;
-        
-        // プレイヤーのターンは継続（別の玉を打てるようにする）
-        // ただし、すべての玉が動いている場合はCPUのターンに移行
-        const allPlayerBallsMovingOrScored = this.playerBalls.every(ball => ball.isMoving || ball.scored);
-        if (allPlayerBallsMovingOrScored) {
-            console.log("すべてのプレイヤーボールが動いているか得点済み、CPUターンに移行");
-            this.playerTurn = false;
-            this.cpuActionScheduled = false; // CPUの行動をリセット
-            
-            // ボールが停止するまで待ってからCPUの行動を実行
-            const checkAndExecute = () => {
-                if (!this.isAnyBallMoving()) {
-                    // ボールが停止したらCPUの行動を実行
-                    console.log("ボールが停止したのでCPUの行動を実行");
-                    this.forceCPUAction();
-                } else {
-                    // まだボールが動いている場合は再チェック
-                    setTimeout(checkAndExecute, 500);
-                }
-            };
-            
-            // 最初のチェックを開始
-            setTimeout(checkAndExecute, 500);
-        }
     }
     
     /**
@@ -486,18 +461,6 @@ class Game {
             this.ctx.fillText('ゲーム終了', this.canvas.width / 2, 30);
         }
         
-        // ターン表示（デバッグモード時のみ）
-        if (this.debugMode) {
-            this.ctx.font = '16px Arial';
-            this.ctx.fillStyle = '#333';
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText(
-                this.playerTurn ? 'プレイヤーのターン' : 'CPUのターン', 
-                this.canvas.width / 2, 
-                20
-            );
-        }
-        
         // ドラッグ中の矢印を描画（最後に描画して他の要素に上書きされないようにする）
         if (this.isDragging && this.currentBall && this.currentMouseX && this.currentMouseY) {
             this.drawArrow();
@@ -564,15 +527,15 @@ class Game {
         this.update();
         this.draw();
         
-        // CPUのターンで、ボールが停止している場合はCPUの行動を実行
-        if (!this.playerTurn && !this.isAnyBallMoving() && !this.cpuActionScheduled) {
-            console.log("CPUのターンでボールが停止しているため行動を実行");
+        // ボールが停止している場合はCPUの行動を実行（自由行動モード）
+        if (!this.isAnyBallMoving() && !this.cpuActionScheduled && !this.gameOver) {
+            console.log("ボールが停止しているためCPUの行動を実行");
             this.cpuActionScheduled = true;
             
             // 少し遅延させてCPUの行動を実行（視覚的にわかりやすくするため）
             setTimeout(() => {
                 this.forceCPUAction();
-            }, 500);
+            }, 1000);
         }
         
         requestAnimationFrame(this.gameLoop.bind(this));
@@ -582,7 +545,7 @@ class Game {
      * CPUの行動を強制的に実行する（スケジューリングをバイパス）
      */
     forceCPUAction() {
-        console.log("CPUの行動を強制実行");
+        console.log("CPUの行動を実行");
         
         // 動かせるCPUのボールを探す
         const availableBalls = this.cpuBalls.filter(ball => !ball.scored && !ball.isMoving);
@@ -614,15 +577,18 @@ class Game {
         
         console.log("CPUボールに速度を設定:", targetBall.vx, targetBall.vy);
         
-        // アラートでCPUの行動を通知（デバッグ用）
-        alert("CPUがボールを発射しました！");
-        
         // プレイヤーのターンに戻す（ボールが停止した後）
         const checkBallsStopped = () => {
             if (!this.isAnyBallMoving()) {
-                this.playerTurn = true;
                 this.cpuActionScheduled = false;
-                console.log("プレイヤーのターンに切り替え");
+                console.log("CPUの行動完了");
+                
+                // 次のCPUの行動をスケジュール
+                setTimeout(() => {
+                    if (!this.gameOver && !this.isAnyBallMoving()) {
+                        this.forceCPUAction();
+                    }
+                }, 1000);
             } else {
                 // まだボールが動いている場合は再チェック
                 setTimeout(checkBallsStopped, 500);
