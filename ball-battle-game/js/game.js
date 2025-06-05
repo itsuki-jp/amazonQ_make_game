@@ -164,8 +164,9 @@ class Game {
      */
     setupEventListeners() {
         this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
-        this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
-        // マウスアップイベントはdocumentに設定（キャンバス外でもドラッグを終了できるように）
+        // mousemoveイベントをdocumentに設定（キャンバス外でもドラッグを継続できるように）
+        document.addEventListener('mousemove', this.handleMouseMove.bind(this));
+        // mouseupイベントもdocumentに設定
         document.addEventListener('mouseup', this.handleMouseUp.bind(this));
         document.getElementById('restartButton').addEventListener('click', this.restartGame.bind(this));
     }
@@ -207,6 +208,7 @@ class Game {
         if (!this.isDragging || this.gameOver) return;
         
         // マウス位置を取得（キャンバス外でもドラッグを継続できるように）
+        // documentを基準にした座標を使用
         const rect = this.canvas.getBoundingClientRect();
         let mouseX = e.clientX - rect.left;
         let mouseY = e.clientY - rect.top;
@@ -275,7 +277,9 @@ class Game {
      * CPUの行動をスケジュールする
      */
     scheduleCPUAction() {
+        // コンソールに直接出力（デバッグ用）
         console.log("CPUの行動をスケジュール");
+        alert("CPUの行動をスケジュール関数が呼ばれました"); // 確認用アラート
         
         // すべてのボールが停止するまで待つ
         if (this.isAnyBallMoving()) {
@@ -289,6 +293,7 @@ class Game {
         // CPUの行動を遅延させる
         this.cpuActionTimer = setTimeout(() => {
             console.log("CPUの行動を開始");
+            alert("CPUの行動を開始"); // 確認用アラート
             this.cpuAction();
             this.playerTurn = true;
             this.cpuActionScheduled = false;
@@ -540,9 +545,12 @@ class Game {
         
         // CPUのターンで、ボールが停止している場合はCPUの行動をスケジュール
         if (!this.playerTurn && !this.isAnyBallMoving() && !this.cpuActionScheduled) {
-            console.log("ゲームループ内でCPUの行動をスケジュール");
             this.cpuActionScheduled = true;
             this.scheduleCPUAction();
+            
+            // コンソールに直接出力（デバッグ用）
+            console.log("CPUの行動をスケジュール（ゲームループ内）");
+            alert("CPUの行動をスケジュール"); // 確認用アラート
         }
         
         requestAnimationFrame(this.gameLoop.bind(this));
