@@ -213,20 +213,6 @@ class Game {
         // 再描画（矢印はdraw()メソッドの最後で描画される）
         this.draw();
     }
-            arrowEndX - headLength * Math.cos(angle + Math.PI / 6),
-            arrowEndY - headLength * Math.sin(angle + Math.PI / 6)
-        );
-        this.ctx.closePath();
-        this.ctx.fillStyle = '#fff';
-        this.ctx.fill();
-        
-        // 強さのインジケーターを表示
-        const powerPercent = Math.min(distance / 150 * 100, 100).toFixed(0);
-        this.ctx.font = '16px Arial';
-        this.ctx.fillStyle = '#fff';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText(`${powerPercent}%`, arrowEndX, arrowEndY - 15);
-    }
     
     /**
      * マウスアップイベントを処理する
