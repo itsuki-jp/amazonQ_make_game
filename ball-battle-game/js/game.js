@@ -254,9 +254,9 @@ class Game {
             return;
         }
         
-        // 最大速度を制限
-        const maxSpeed = 15;
-        const speed = Math.min(distance / 10, maxSpeed);
+        // 最大速度を制限（値を大きくして勢いの限度を上げる）
+        const maxSpeed = 25;
+        const speed = Math.min(distance / 8, maxSpeed);
         
         // ボールに速度を設定（ドラッグ方向とは逆向きに発射）
         this.currentBall.vx = -(dx / distance) * speed;
@@ -589,8 +589,8 @@ class Game {
         const dy = this.hole.y - targetBall.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        // 速度を設定（より強く、より正確に）
-        const speed = 10; // 固定の強い速度
+        // 速度を設定（より強く、より正確に - 傾斜が強くなったので速度も上げる）
+        const speed = 15; // 固定の強い速度（値を大きくして傾斜に対応）
         targetBall.vx = (dx / distance) * speed;
         targetBall.vy = (dy / distance) * speed;
         targetBall.isMoving = true;
