@@ -4,7 +4,7 @@
  */
 class PhysicsEngine {
     constructor() {
-        this.gravity = 0.2; // 擬似重力（傾斜効果用）
+        this.gravity = 0.1; // 擬似重力（傾斜効果用）- 中央をピークとする傾斜
         this.friction = 0.98; // 摩擦係数
         this.restitution = 0.8; // 反発係数
     }
@@ -24,13 +24,13 @@ class PhysicsEngine {
         ball.x += ball.vx;
         ball.y += ball.vy;
 
-        // 擬似傾斜効果（穴を外した場合、自陣側に戻る傾向がある）
+        // 擬似傾斜効果（中央をピークとする傾斜 - 穴を外した場合、自陣側に戻る傾向がある）
         if (ball.x < boundaries.width / 2) {
-            // プレイヤー側
-            ball.vx += this.gravity * (ball.isPlayer ? 1 : -1);
-        } else {
-            // CPU側
+            // プレイヤー側 - 中央に向かって右に行くほど上り坂、中央から離れると下り坂
             ball.vx += this.gravity * (ball.isPlayer ? -1 : 1);
+        } else {
+            // CPU側 - 中央に向かって左に行くほど上り坂、中央から離れると下り坂
+            ball.vx += this.gravity * (ball.isPlayer ? 1 : -1);
         }
 
         // 摩擦による減速
