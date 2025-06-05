@@ -282,7 +282,6 @@ class Game {
     scheduleCPUAction() {
         // コンソールに直接出力（デバッグ用）
         console.log("CPUの行動をスケジュール");
-        alert("CPUの行動をスケジュール関数が呼ばれました"); // 確認用アラート
         
         // すべてのボールが停止するまで待つ
         if (this.isAnyBallMoving()) {
@@ -296,7 +295,6 @@ class Game {
         // CPUの行動を遅延させる
         this.cpuActionTimer = setTimeout(() => {
             console.log("CPUの行動を開始");
-            alert("CPUの行動を開始"); // 確認用アラート
             this.cpuAction();
             this.playerTurn = true;
             this.cpuActionScheduled = false;
@@ -598,36 +596,6 @@ class Game {
                 this.playerTurn = true;
                 this.cpuActionScheduled = false;
                 console.log("プレイヤーのターンに切り替え");
-            }
-        }, 2000);
-    }
-            return;
-        }
-        
-        // 最前列のボールを選択（x座標が最も小さいもの）
-        const targetBall = availableBalls.reduce((prev, current) => 
-            (current.x < prev.x) ? current : prev, availableBalls[0]);
-        
-        console.log("選択されたCPUボール:", targetBall);
-        
-        // 穴に向かって発射
-        const dx = this.hole.x - targetBall.x;
-        const dy = this.hole.y - targetBall.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        // 速度を設定（より強く、より正確に）
-        const speed = 10; // 固定の強い速度
-        targetBall.vx = (dx / distance) * speed;
-        targetBall.vy = (dy / distance) * speed;
-        targetBall.isMoving = true;
-        
-        console.log("CPUボールに速度を設定:", targetBall.vx, targetBall.vy);
-        
-        // プレイヤーのターンに戻す（ボールが停止した後）
-        setTimeout(() => {
-            if (!this.isAnyBallMoving()) {
-                this.playerTurn = true;
-                this.cpuActionScheduled = false;
             }
         }, 2000);
     }
