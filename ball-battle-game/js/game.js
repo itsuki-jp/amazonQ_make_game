@@ -269,10 +269,26 @@ class Game {
         
         // プレイヤーのターンは継続（別の玉を打てるようにする）
         // ただし、すべての玉が動いている場合はCPUのターンに移行
-        if (this.playerBalls.every(ball => ball.isMoving || ball.scored)) {
+        const allPlayerBallsMovingOrScored = this.playerBalls.every(ball => ball.isMoving || ball.scored);
+        if (allPlayerBallsMovingOrScored) {
             console.log("すべてのプレイヤーボールが動いているか得点済み、CPUターンに移行");
             this.playerTurn = false;
             this.cpuActionScheduled = false; // CPUの行動をリセット
+            
+            // ボールが停止するまで待ってからCPUの行動を実行
+            const checkAndExecute = () => {
+                if (!this.isAnyBallMoving()) {
+                    // ボールが停止したらCPUの行動を実行
+                    console.log("ボールが停止したのでCPUの行動を実行");
+                    this.forceCPUAction();
+                } else {
+                    // まだボールが動いている場合は再チェック
+                    setTimeout(checkAndExecute, 500);
+                }
+            };
+            
+            // 最初のチェックを開始
+            setTimeout(checkAndExecute, 500);
         }
     }
     
@@ -423,17 +439,15 @@ class Game {
             }
         });
         
-        // プレイヤーのターンで、すべての玉が動いている場合はCPUのターンに移行
-        if (this.playerTurn && this.playerBalls.every(ball => ball.isMoving || ball.scored)) {
-            console.log("すべてのプレイヤーボールが動いているか得点済み、CPUターンに移行準備");
-            this.playerTurn = false;
-            // CPUの行動をスケジュール（ボールが停止した後）
-            if (!this.isAnyBallMoving()) {
-                console.log("ボールが停止しているのでCPUの行動をスケジュール");
-                this.scheduleCPUAction();
-            } else {
-                console.log("ボールが動いているのでCPUの行動は待機");
-            }
+        // CPUのターンで、ボールが停止している場合はCPUの行動を実行
+        if (!this.playerTurn && !this.isAnyBallMoving() && !this.cpuActionScheduled) {
+            console.log("update内: CPUのターンでボールが停止しているため行動を実行");
+            this.cpuActionScheduled = true;
+            
+            // 少し遅延させてCPUの行動を実行
+            setTimeout(() => {
+                this.forceCPUAction();
+            }, 500);
         }
     }
     
@@ -544,11 +558,15 @@ class Game {
         this.update();
         this.draw();
         
-        // CPUのターンで、ボールが停止している場合はCPUの行動をスケジュール
+        // CPUのターンで、ボールが停止している場合はCPUの行動を実行
         if (!this.playerTurn && !this.isAnyBallMoving() && !this.cpuActionScheduled) {
             console.log("CPUのターンでボールが停止しているため行動を実行");
             this.cpuActionScheduled = true;
-            this.forceCPUAction(); // 直接CPUの行動を実行
+            
+            // 少し遅延させてCPUの行動を実行（視覚的にわかりやすくするため）
+            setTimeout(() => {
+                this.forceCPUAction();
+            }, 500);
         }
         
         requestAnimationFrame(this.gameLoop.bind(this));
@@ -590,14 +608,29 @@ class Game {
         
         console.log("CPUボールに速度を設定:", targetBall.vx, targetBall.vy);
         
+        // アラートでCPUの行動を通知（デバッグ用）
+        alert("CPUがボールを発射しました！");
+        
         // プレイヤーのターンに戻す（ボールが停止した後）
         setTimeout(() => {
             if (!this.isAnyBallMoving()) {
                 this.playerTurn = true;
                 this.cpuActionScheduled = false;
                 console.log("プレイヤーのターンに切り替え");
+            } else {
+                // まだボールが動いている場合は再チェック
+                const checkAgain = () => {
+                    if (!this.isAnyBallMoving()) {
+                        this.playerTurn = true;
+                        this.cpuActionScheduled = false;
+                        console.log("プレイヤーのターンに切り替え（遅延）");
+                    } else {
+                        setTimeout(checkAgain, 500);
+                    }
+                };
+                setTimeout(checkAgain, 500);
             }
-        }, 2000);
+        }, 1000);
     }
 }
 
