@@ -162,16 +162,6 @@ class Game {
         
         this.updateScoreDisplay();
     }
-        
-        // CPUのボールを配置
-        const cpuStartX = this.canvas.width * 3 / 4;
-        for (let i = 0; i < 4; i++) {
-            const y = 100 + i * 80;
-            this.cpuBalls.push(new Ball(cpuStartX, y, this.ballRadius, '#e74c3c', false));
-        }
-        
-        this.updateScoreDisplay();
-    }
     
     /**
      * イベントリスナーを設定する
