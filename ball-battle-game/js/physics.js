@@ -37,8 +37,9 @@ class PhysicsEngine {
         ball.vx *= this.friction;
         ball.vy *= this.friction;
 
-        // 速度が非常に小さくなったら停止とみなす
-        if (Math.abs(ball.vx) < 0.05 && Math.abs(ball.vy) < 0.05) {
+        // 速度が非常に小さくなったら停止とみなす（閾値を下回ったら0に）
+        const speedThreshold = 0.05;
+        if (Math.abs(ball.vx) < speedThreshold && Math.abs(ball.vy) < speedThreshold) {
             ball.vx = 0;
             ball.vy = 0;
             ball.isMoving = false;
