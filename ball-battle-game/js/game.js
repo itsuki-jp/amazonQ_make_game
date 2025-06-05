@@ -182,7 +182,7 @@ class Game {
      * @param {MouseEvent} e - マウスイベント
      */
     handleMouseDown(e) {
-        if (this.gameOver || !this.playerTurn) return;
+        if (this.gameOver) return;
         
         const rect = this.canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
@@ -528,7 +528,7 @@ class Game {
         this.draw();
         
         // ボールが停止している場合はCPUの行動を実行（自由行動モード）
-        if (!this.isAnyBallMoving() && !this.cpuActionScheduled && !this.gameOver) {
+        if (!this.isAnyBallMoving() && !this.cpuActionScheduled && !this.gameOver && !this.isDragging) {
             console.log("ボールが停止しているためCPUの行動を実行");
             this.cpuActionScheduled = true;
             
@@ -547,13 +547,18 @@ class Game {
     forceCPUAction() {
         console.log("CPUの行動を実行");
         
+        // プレイヤーがドラッグ中の場合は何もしない
+        if (this.isDragging) {
+            this.cpuActionScheduled = false;
+            return;
+        }
+        
         // 動かせるCPUのボールを探す
         const availableBalls = this.cpuBalls.filter(ball => !ball.scored && !ball.isMoving);
         console.log("動かせるCPUのボール数:", availableBalls.length);
         
         if (availableBalls.length === 0) {
             console.log("動かせるCPUのボールがありません");
-            this.playerTurn = true;
             this.cpuActionScheduled = false;
             return;
         }
@@ -579,14 +584,16 @@ class Game {
         
         // プレイヤーのターンに戻す（ボールが停止した後）
         const checkBallsStopped = () => {
-            if (!this.isAnyBallMoving()) {
+            if (!this.isAnyBallMoving() && !this.isDragging) {
                 this.cpuActionScheduled = false;
                 console.log("CPUの行動完了");
                 
                 // 次のCPUの行動をスケジュール
                 setTimeout(() => {
-                    if (!this.gameOver && !this.isAnyBallMoving()) {
+                    if (!this.gameOver && !this.isAnyBallMoving() && !this.isDragging) {
                         this.forceCPUAction();
+                    } else {
+                        this.cpuActionScheduled = false;
                     }
                 }, 1000);
             } else {
