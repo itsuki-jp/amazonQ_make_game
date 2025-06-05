@@ -114,6 +114,7 @@ class Game {
         this.currentMouseY = null;
         this.playerTurn = true;
         this.gameOver = false;
+        this.cpuActionScheduled = false;
         
         // スコア表示要素
         this.playerScoreElement = document.getElementById('playerScore');
@@ -130,6 +131,8 @@ class Game {
         
         // ゲームループの開始
         this.gameLoop();
+        
+        console.log("ゲーム初期化完了");
     }
     
     /**
@@ -162,7 +165,8 @@ class Game {
     setupEventListeners() {
         this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
         this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
-        this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
+        // マウスアップイベントはdocumentに設定（キャンバス外でもドラッグを終了できるように）
+        document.addEventListener('mouseup', this.handleMouseUp.bind(this));
         document.getElementById('restartButton').addEventListener('click', this.restartGame.bind(this));
     }
     
@@ -202,9 +206,10 @@ class Game {
     handleMouseMove(e) {
         if (!this.isDragging || this.gameOver) return;
         
+        // マウス位置を取得（キャンバス外でもドラッグを継続できるように）
         const rect = this.canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
+        let mouseX = e.clientX - rect.left;
+        let mouseY = e.clientY - rect.top;
         
         // 現在のマウス位置を保存（draw()メソッドで使用）
         this.currentMouseX = mouseX;
@@ -221,9 +226,10 @@ class Game {
     handleMouseUp(e) {
         if (!this.isDragging || this.gameOver) return;
         
+        // マウス位置を取得（キャンバス外でもドラッグを継続できるように）
         const rect = this.canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
+        let mouseX = e.clientX - rect.left;
+        let mouseY = e.clientY - rect.top;
         
         // 発射方向と強さを計算
         const dx = mouseX - this.startX;
@@ -285,6 +291,7 @@ class Game {
             console.log("CPUの行動を開始");
             this.cpuAction();
             this.playerTurn = true;
+            this.cpuActionScheduled = false;
             console.log("プレイヤーのターンに切り替え");
         }, 1000);
     }
@@ -297,6 +304,8 @@ class Game {
         
         // 動かせるCPUのボールを探す
         const availableBalls = this.cpuBalls.filter(ball => !ball.scored && !ball.isMoving);
+        console.log("動かせるCPUのボール数:", availableBalls.length);
+        
         if (availableBalls.length === 0) {
             console.log("動かせるCPUのボールがありません");
             return;
@@ -313,14 +322,10 @@ class Game {
         const dy = this.hole.y - targetBall.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        // ランダム性を加える（少しずれる）
-        const randomFactor = 0.1;
-        const randomAngle = (Math.random() - 0.5) * randomFactor;
-        
-        // 速度を設定
-        const speed = 5 + Math.random() * 3; // 5〜8の範囲でランダム
-        targetBall.vx = (dx / distance) * speed * Math.cos(randomAngle);
-        targetBall.vy = (dy / distance) * speed * Math.sin(randomAngle);
+        // 速度を設定（より強く、より正確に）
+        const speed = 8 + Math.random() * 2; // 8〜10の範囲でランダム
+        targetBall.vx = (dx / distance) * speed;
+        targetBall.vy = (dy / distance) * speed;
         targetBall.isMoving = true;
         
         console.log("CPUボールに速度を設定:", targetBall.vx, targetBall.vy);
@@ -331,7 +336,9 @@ class Game {
      * @returns {boolean} - ボールが動いている場合はtrue
      */
     isAnyBallMoving() {
-        return [...this.playerBalls, ...this.cpuBalls].some(ball => ball.isMoving);
+        const moving = [...this.playerBalls, ...this.cpuBalls].some(ball => ball.isMoving);
+        console.log("ボールの動き状態:", moving ? "動いている" : "停止している");
+        return moving;
     }
     
     /**
@@ -412,10 +419,14 @@ class Game {
         
         // プレイヤーのターンで、すべての玉が動いている場合はCPUのターンに移行
         if (this.playerTurn && this.playerBalls.every(ball => ball.isMoving || ball.scored)) {
+            console.log("すべてのプレイヤーボールが動いているか得点済み、CPUターンに移行準備");
             this.playerTurn = false;
             // CPUの行動をスケジュール（ボールが停止した後）
             if (!this.isAnyBallMoving()) {
+                console.log("ボールが停止しているのでCPUの行動をスケジュール");
                 this.scheduleCPUAction();
+            } else {
+                console.log("ボールが動いているのでCPUの行動は待機");
             }
         }
     }
@@ -526,6 +537,14 @@ class Game {
     gameLoop() {
         this.update();
         this.draw();
+        
+        // CPUのターンで、ボールが停止している場合はCPUの行動をスケジュール
+        if (!this.playerTurn && !this.isAnyBallMoving() && !this.cpuActionScheduled) {
+            console.log("ゲームループ内でCPUの行動をスケジュール");
+            this.cpuActionScheduled = true;
+            this.scheduleCPUAction();
+        }
+        
         requestAnimationFrame(this.gameLoop.bind(this));
     }
 }

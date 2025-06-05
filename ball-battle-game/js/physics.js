@@ -42,6 +42,7 @@ class PhysicsEngine {
             ball.vx = 0;
             ball.vy = 0;
             ball.isMoving = false;
+            console.log("ボールが停止:", ball);
         }
 
         // 壁との衝突判定
