@@ -369,12 +369,10 @@ class Game {
         this.cpuScoreElement.textContent = `CPUの残り玉: ${cpuRemaining}`;
         
         // 勝敗判定
-        if (playerRemaining === 0) {
+        if (playerRemaining === 0 || cpuRemaining === 0) {
             this.gameOver = true;
-            setTimeout(() => alert('プレイヤーの勝利！'), 100);
-        } else if (cpuRemaining === 0) {
-            this.gameOver = true;
-            setTimeout(() => alert('CPUの勝利！'), 100);
+            console.log("ゲーム終了");
+            // アラートは表示しない
         }
     }
     
@@ -660,10 +658,10 @@ class Game {
             console.log("ボールが停止しているためCPUの行動を実行");
             this.cpuActionScheduled = true;
             
-            // 少し遅延させてCPUの行動を実行
+            // より短い遅延でCPUの行動を実行（積極的に）
             setTimeout(() => {
                 this.forceCPUAction();
-            }, 1000);
+            }, 500); // 1000msから500msに短縮
         }
         
         requestAnimationFrame(this.gameLoop.bind(this));
@@ -691,9 +689,21 @@ class Game {
             return;
         }
         
-        // 動いていない玉からランダムに選択
-        const randomIndex = Math.floor(Math.random() * availableBalls.length);
-        const targetBall = availableBalls[randomIndex];
+        // 戦略的なボール選択（最も穴に近いボールを優先）
+        availableBalls.sort((a, b) => {
+            const distA = Math.sqrt(Math.pow(this.hole.x - a.x, 2) + Math.pow(this.hole.y - a.y, 2));
+            const distB = Math.sqrt(Math.pow(this.hole.x - b.x, 2) + Math.pow(this.hole.y - b.y, 2));
+            return distA - distB; // 距離が近い順にソート
+        });
+        
+        // 80%の確率で最も穴に近いボールを選択、20%の確率でランダム選択
+        let targetBall;
+        if (Math.random() < 0.8) {
+            targetBall = availableBalls[0]; // 最も穴に近いボール
+        } else {
+            const randomIndex = Math.floor(Math.random() * availableBalls.length);
+            targetBall = availableBalls[randomIndex];
+        }
         
         console.log("選択されたCPUボール:", targetBall);
         
@@ -708,7 +718,7 @@ class Game {
         
         // 速度を設定（常に最高威力で発射）
         const speed = 35; // 最大威力
-        const angleVariation = (Math.random() - 0.5) * 0.1; // わずかなランダム性
+        const angleVariation = (Math.random() - 0.5) * 0.08; // わずかなランダム性（精度を上げる）
         
         // 角度にわずかなランダム性を加える
         const angle = Math.atan2(dy, dx) + angleVariation;
