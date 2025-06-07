@@ -254,8 +254,8 @@ class Game {
         }
         
         // 最大速度を制限（値を大きくして勢いの限度を上げる）
-        const maxSpeed = 25;
-        const speed = Math.min(distance / 8, maxSpeed);
+        const maxSpeed = 35; // 25から35に増加
+        const speed = Math.min(distance / 7, maxSpeed); // 係数も8から7に変更してより速く
         
         // ボールに速度を設定（ドラッグ方向とは逆向きに発射）
         this.currentBall.vx = -(dx / distance) * speed;
@@ -590,7 +590,7 @@ class Game {
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         // 速度を設定（常に最高威力で発射）
-        const speed = 25; // 最大威力に設定
+        const speed = 35; // 最大威力を25から35に増加
         const angleVariation = (Math.random() - 0.5) * 0.1; // わずかなランダム性を残す
         
         // 角度にわずかなランダム性を加える

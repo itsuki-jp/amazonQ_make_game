@@ -4,7 +4,7 @@
  */
 class PhysicsEngine {
     constructor() {
-        this.gravity = 0.25; // 擬似重力（傾斜効果用）- 中央をピークとする傾斜（値を大きくして傾斜を強く）
+        this.gravity = 0.3; // 擬似重力（傾斜効果用）- 中央をピークとする傾斜（値を大きくして傾斜を強く）
         this.friction = 0.95; // 摩擦係数（さらに強めに設定）
         this.restitution = 0.6; // 反発係数（さらに弱めに設定）
         
