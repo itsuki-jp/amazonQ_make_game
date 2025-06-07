@@ -590,9 +590,14 @@ class Game {
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         // 速度を設定（より強く、より正確に - 傾斜が強くなったので速度も上げる）
-        const speed = 15; // 固定の強い速度（値を大きくして傾斜に対応）
-        targetBall.vx = (dx / distance) * speed;
-        targetBall.vy = (dy / distance) * speed;
+        // 少しランダム性を加えて、完全に同じ軌道にならないようにする
+        const speed = 15 + Math.random() * 5; // 15〜20の範囲でランダム
+        const angleVariation = (Math.random() - 0.5) * 0.2; // -0.1〜0.1のランダムな角度変化
+        
+        // 角度にランダム性を加える
+        const angle = Math.atan2(dy, dx) + angleVariation;
+        targetBall.vx = Math.cos(angle) * speed;
+        targetBall.vy = Math.sin(angle) * speed;
         targetBall.isMoving = true;
         
         console.log("CPUボールに速度を設定:", targetBall.vx, targetBall.vy);
@@ -606,7 +611,9 @@ class Game {
                 // 次のCPUの行動をスケジュール（ランダムな待機時間を設定）
                 const waitTime = 1000 + Math.random() * 2000; // 1〜3秒のランダムな待機時間
                 setTimeout(() => {
-                    if (!this.gameOver && !this.isAnyBallMoving() && !this.isDragging) {
+                    // 動かせるCPUのボールがあるか再確認
+                    const movableBalls = this.cpuBalls.filter(ball => !ball.scored && !ball.isMoving);
+                    if (!this.gameOver && !this.isAnyBallMoving() && !this.isDragging && movableBalls.length > 0) {
                         this.forceCPUAction();
                     } else {
                         this.cpuActionScheduled = false;

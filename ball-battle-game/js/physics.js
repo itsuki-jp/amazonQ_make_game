@@ -30,12 +30,13 @@ class PhysicsEngine {
         const distanceFromCenter = Math.abs(ball.x - centerX);
         const slopeEffect = this.gravity * (1 + distanceFromCenter / centerX); // 中央から離れるほど傾斜効果が強くなる
         
+        // プレイヤーとCPUで同じ傾斜効果を適用（中央から離れると自陣側に戻る傾向）
         if (ball.x < centerX) {
-            // プレイヤー側 - 中央に向かって右に行くほど上り坂、中央から離れると下り坂
-            ball.vx += slopeEffect * (ball.isPlayer ? -1 : 1);
+            // プレイヤー側 - 中央から離れると左に引っ張られる
+            ball.vx -= slopeEffect;
         } else {
-            // CPU側 - 中央に向かって左に行くほど上り坂、中央から離れると下り坂
-            ball.vx += slopeEffect * (ball.isPlayer ? 1 : -1);
+            // CPU側 - 中央から離れると右に引っ張られる
+            ball.vx += slopeEffect;
         }
 
         // 摩擦による減速
