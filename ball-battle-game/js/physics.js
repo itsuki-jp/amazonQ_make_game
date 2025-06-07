@@ -109,18 +109,42 @@ class PhysicsEngine {
         if (ball.x - ball.radius < 0) {
             ball.x = ball.radius;
             ball.vx = -ball.vx * this.restitution;
+            
+            // 速度が小さい場合は少し内側に押し出して無限バウンスを防止
+            if (Math.abs(ball.vx) < 0.5) {
+                ball.vx = 0;
+                ball.x = ball.radius + 1;
+            }
         } else if (ball.x + ball.radius > boundaries.width) {
             ball.x = boundaries.width - ball.radius;
             ball.vx = -ball.vx * this.restitution;
+            
+            // 速度が小さい場合は少し内側に押し出して無限バウンスを防止
+            if (Math.abs(ball.vx) < 0.5) {
+                ball.vx = 0;
+                ball.x = boundaries.width - ball.radius - 1;
+            }
         }
 
         // 上下の境界
         if (ball.y - ball.radius < 0) {
             ball.y = ball.radius;
             ball.vy = -ball.vy * this.restitution;
+            
+            // 速度が小さい場合は少し内側に押し出して無限バウンスを防止
+            if (Math.abs(ball.vy) < 0.5) {
+                ball.vy = 0;
+                ball.y = ball.radius + 1;
+            }
         } else if (ball.y + ball.radius > boundaries.height) {
             ball.y = boundaries.height - ball.radius;
             ball.vy = -ball.vy * this.restitution;
+            
+            // 速度が小さい場合は少し内側に押し出して無限バウンスを防止
+            if (Math.abs(ball.vy) < 0.5) {
+                ball.vy = 0;
+                ball.y = boundaries.height - ball.radius - 1;
+            }
         }
     }
 
@@ -133,9 +157,10 @@ class PhysicsEngine {
         const dx = ball2.x - ball1.x;
         const dy = ball2.y - ball1.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
+        const minDistance = ball1.radius + ball2.radius;
 
         // 衝突判定
-        if (distance < ball1.radius + ball2.radius) {
+        if (distance < minDistance) {
             // 衝突応答（運動量保存則に基づく計算）
             const angle = Math.atan2(dy, dx);
             const sin = Math.sin(angle);
@@ -163,27 +188,18 @@ class PhysicsEngine {
             vel1.x = ((ball1.mass - ball2.mass) * vel1.x + 2 * ball2.mass * vel2.x) / (ball1.mass + ball2.mass);
             vel2.x = vxTotal + vel1.x;
 
-            // 位置を更新して重なりを解消
-            const absV = Math.abs(vel1.x) + Math.abs(vel2.x);
-            const overlap = (ball1.radius + ball2.radius) - Math.abs(pos1.x - pos2.x);
-            pos1.x -= vel1.x / absV * overlap;
-            pos2.x -= vel2.x / absV * overlap;
-
-            // 回転を元に戻す
-            const pos1F = {
-                x: pos1.x * cos - pos1.y * sin,
-                y: pos1.y * cos + pos1.x * sin
-            };
-            const pos2F = {
-                x: pos2.x * cos - pos2.y * sin,
-                y: pos2.y * cos + pos2.x * sin
-            };
-
-            // ボール2の位置を更新
-            ball2.x = ball1.x + pos2F.x;
-            ball2.y = ball1.y + pos2F.y;
-            ball1.x = ball1.x + pos1F.x;
-            ball1.y = ball1.y + pos1F.y;
+            // 位置を更新して重なりを解消（重なりを確実に解消するため係数を大きくする）
+            const overlap = (minDistance - distance) * 1.01; // 少し余分に離す
+            const moveRatio1 = ball1.radius / minDistance;
+            const moveRatio2 = ball2.radius / minDistance;
+            
+            const moveX = overlap * cos;
+            const moveY = overlap * sin;
+            
+            ball1.x -= moveX * moveRatio2;
+            ball1.y -= moveY * moveRatio2;
+            ball2.x += moveX * moveRatio1;
+            ball2.y += moveY * moveRatio1;
 
             // 速度を回転して戻す
             ball1.vx = vel1.x * cos - vel1.y * sin;
@@ -198,6 +214,24 @@ class PhysicsEngine {
             ball2.vy *= this.restitution;
 
             // 両方のボールを動いている状態にする
+            ball1.isMoving = true;
+            ball2.isMoving = true;
+            
+            // 速度が非常に小さい場合は少し加速して、くっつきを防止
+            const minVelocity = 0.2;
+            if (Math.abs(ball1.vx) < minVelocity && Math.abs(ball1.vy) < minVelocity) {
+                const randomAngle = Math.random() * Math.PI * 2;
+                ball1.vx += Math.cos(randomAngle) * 0.3;
+                ball1.vy += Math.sin(randomAngle) * 0.3;
+            }
+            
+            if (Math.abs(ball2.vx) < minVelocity && Math.abs(ball2.vy) < minVelocity) {
+                const randomAngle = Math.random() * Math.PI * 2;
+                ball2.vx += Math.cos(randomAngle) * 0.3;
+                ball2.vy += Math.sin(randomAngle) * 0.3;
+            }
+        }
+    }
             ball1.isMoving = true;
             ball2.isMoving = true;
         }
