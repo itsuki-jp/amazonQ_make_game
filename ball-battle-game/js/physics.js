@@ -60,43 +60,31 @@ class PhysicsEngine {
     }
 
     /**
-     * 中央の壁との衝突判定
+     * 壁との衝突判定
      * @param {Ball} ball - ボールオブジェクト
      * @param {Wall} wall - 壁オブジェクト
      * @param {Hole} hole - 穴オブジェクト
      */
     checkWallCollision(ball, wall, hole) {
-        // 穴との衝突判定（穴を通過できるかチェック）
-        if (this.checkHoleCollision(ball, hole)) {
-            return; // 穴を通過できる場合は壁との衝突判定をスキップ
-        }
-
-        // 壁との衝突判定
-        if (Math.abs(ball.x - wall.x) < ball.radius) {
-            // 壁の左右どちらかにボールがある場合
-            if (ball.x < wall.x) {
-                ball.x = wall.x - ball.radius;
-            } else {
-                ball.x = wall.x + ball.radius;
+        // 壁の範囲内にあるかチェック
+        if (ball.y >= wall.y - wall.height / 2 && ball.y <= wall.y + wall.height / 2) {
+            // 穴の範囲内にあるかチェック
+            if (Math.abs(ball.y - hole.y) <= hole.radius) {
+                // 穴の範囲内なら衝突判定をスキップ
+                return;
             }
-            ball.vx = -ball.vx * this.restitution;
+
+            // 壁の左側との衝突
+            if (ball.x + ball.radius > wall.x - wall.width / 2 && ball.x < wall.x) {
+                ball.x = wall.x - wall.width / 2 - ball.radius;
+                ball.vx = -ball.vx * this.restitution;
+            }
+            // 壁の右側との衝突
+            else if (ball.x - ball.radius < wall.x + wall.width / 2 && ball.x > wall.x) {
+                ball.x = wall.x + wall.width / 2 + ball.radius;
+                ball.vx = -ball.vx * this.restitution;
+            }
         }
-    }
-
-    /**
-     * 穴との衝突判定（穴を通過できるかチェック）
-     * @param {Ball} ball - ボールオブジェクト
-     * @param {Hole} hole - 穴オブジェクト
-     * @returns {boolean} - 穴を通過できる場合はtrue
-     */
-    checkHoleCollision(ball, hole) {
-        // ボールの中心と穴の中心との距離を計算
-        const dx = ball.x - hole.x;
-        const dy = ball.y - hole.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        // ボールが穴を通過できるかチェック（ボールの中心が穴の範囲内にあるか）
-        return distance < hole.radius - ball.radius;
     }
 
     /**
@@ -230,10 +218,6 @@ class PhysicsEngine {
                 ball2.vx += Math.cos(randomAngle) * 0.3;
                 ball2.vy += Math.sin(randomAngle) * 0.3;
             }
-        }
-    }
-            ball1.isMoving = true;
-            ball2.isMoving = true;
         }
     }
 }
