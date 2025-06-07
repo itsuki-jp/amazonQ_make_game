@@ -443,23 +443,34 @@ class Game {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
         // フィールドの背景を描画
-        this.ctx.fillStyle = '#e8f4f8'; // プレイヤー側
+        this.ctx.fillStyle = 'rgba(20, 30, 48, 0.7)'; // プレイヤー側
         this.ctx.fillRect(0, 0, this.canvas.width / 2, this.canvas.height);
-        this.ctx.fillStyle = '#f8e8e8'; // CPU側
+        this.ctx.fillStyle = 'rgba(36, 59, 85, 0.7)'; // CPU側
         this.ctx.fillRect(this.canvas.width / 2, 0, this.canvas.width / 2, this.canvas.height);
+        
+        // グリッドパターンを描画
+        this.drawGrid();
         
         // 中央線を描画
         this.ctx.beginPath();
         this.ctx.moveTo(this.canvas.width / 2, 0);
         this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);
-        this.ctx.strokeStyle = '#999';
-        this.ctx.lineWidth = 1;
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        this.ctx.lineWidth = 2;
         this.ctx.stroke();
+        
+        // 穴の周りに光るエフェクトを描画
+        this.drawHoleGlow();
         
         // ボールを描画
         [...this.playerBalls, ...this.cpuBalls].forEach(ball => {
             // すべてのボールを表示
             ball.draw(this.ctx);
+            
+            // 動いているボールには軌跡エフェクトを追加
+            if (ball.isMoving) {
+                this.drawBallTrail(ball);
+            }
         });
         
         // 壁を描画（ボールの上に表示）
@@ -470,16 +481,100 @@ class Game {
         
         // ゲーム終了時のみメッセージを表示
         if (this.gameOver) {
-            this.ctx.font = '20px Arial';
-            this.ctx.fillStyle = '#333';
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText('ゲーム終了', this.canvas.width / 2, 30);
+            this.drawGameOverMessage();
         }
         
         // ドラッグ中の矢印を描画（最後に描画して他の要素に上書きされないようにする）
         if (this.isDragging && this.currentBall && this.currentMouseX && this.currentMouseY) {
             this.drawArrow();
         }
+    }
+    
+    /**
+     * グリッドパターンを描画
+     */
+    drawGrid() {
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        this.ctx.lineWidth = 1;
+        
+        // 縦線
+        for (let x = 0; x <= this.canvas.width; x += 40) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, 0);
+            this.ctx.lineTo(x, this.canvas.height);
+            this.ctx.stroke();
+        }
+        
+        // 横線
+        for (let y = 0; y <= this.canvas.height; y += 40) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, y);
+            this.ctx.lineTo(this.canvas.width, y);
+            this.ctx.stroke();
+        }
+    }
+    
+    /**
+     * 穴の周りに光るエフェクトを描画
+     */
+    drawHoleGlow() {
+        const gradient = this.ctx.createRadialGradient(
+            this.hole.x, this.hole.y, this.hole.radius,
+            this.hole.x, this.hole.y, this.hole.radius * 3
+        );
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        
+        this.ctx.fillStyle = gradient;
+        this.ctx.beginPath();
+        this.ctx.arc(this.hole.x, this.hole.y, this.hole.radius * 3, 0, Math.PI * 2);
+        this.ctx.fill();
+    }
+    
+    /**
+     * ボールの軌跡エフェクトを描画
+     */
+    drawBallTrail(ball) {
+        const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+        const trailLength = Math.min(speed * 0.8, 20);
+        
+        const gradient = this.ctx.createLinearGradient(
+            ball.x, ball.y,
+            ball.x - ball.vx * trailLength / speed, ball.y - ball.vy * trailLength / speed
+        );
+        
+        const color = ball.isPlayer ? 'rgba(79, 195, 247, ' : 'rgba(255, 138, 101, ';
+        gradient.addColorStop(0, color + '0.7)');
+        gradient.addColorStop(1, color + '0)');
+        
+        this.ctx.fillStyle = gradient;
+        this.ctx.beginPath();
+        this.ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+        this.ctx.fill();
+    }
+    
+    /**
+     * ゲーム終了メッセージを描画
+     */
+    drawGameOverMessage() {
+        // 半透明の背景
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // 勝者を判定
+        const playerRemaining = this.playerBalls.filter(ball => !ball.scored).length;
+        const cpuRemaining = this.cpuBalls.filter(ball => !ball.scored).length;
+        const winner = playerRemaining === 0 ? 'プレイヤー' : 'CPU';
+        
+        // メッセージを表示
+        this.ctx.font = 'bold 36px Poppins, sans-serif';
+        this.ctx.fillStyle = '#fff';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText(`${winner}の勝利！`, this.canvas.width / 2, this.canvas.height / 2 - 20);
+        
+        this.ctx.font = '20px Poppins, sans-serif';
+        this.ctx.fillText('リスタートボタンをクリックして再開', this.canvas.width / 2, this.canvas.height / 2 + 30);
     }
     
     /**
@@ -504,7 +599,16 @@ class Game {
         this.ctx.beginPath();
         this.ctx.moveTo(this.currentBall.x, this.currentBall.y);
         this.ctx.lineTo(arrowEndX, arrowEndY);
-        this.ctx.strokeStyle = '#ff0000'; // 赤色で視認性を高める
+        
+        // グラデーションを作成
+        const gradient = this.ctx.createLinearGradient(
+            this.startX, this.startY,
+            arrowEndX, arrowEndY
+        );
+        gradient.addColorStop(0, 'rgba(79, 195, 247, 0.9)');
+        gradient.addColorStop(1, 'rgba(79, 195, 247, 0.3)');
+        
+        this.ctx.strokeStyle = gradient;
         this.ctx.lineWidth = lineWidth;
         this.ctx.stroke();
         
@@ -521,18 +625,27 @@ class Game {
             arrowEndY - headLength * Math.sin(angle + Math.PI / 6)
         );
         this.ctx.closePath();
-        this.ctx.fillStyle = '#ff0000'; // 赤色で視認性を高める
+        this.ctx.fillStyle = 'rgba(79, 195, 247, 0.8)';
         this.ctx.fill();
         
         // 強さのインジケーターを表示
         const powerPercent = Math.min(distance / 150 * 100, 100).toFixed(0);
-        this.ctx.font = 'bold 16px Arial';
-        this.ctx.fillStyle = '#ffffff'; // 白色
+        
+        // 光るエフェクト付きのテキスト
+        this.ctx.font = 'bold 18px Poppins, sans-serif';
         this.ctx.textAlign = 'center';
-        this.ctx.strokeStyle = '#000000'; // 黒い縁取り
-        this.ctx.lineWidth = 3;
-        this.ctx.strokeText(`${powerPercent}%`, arrowEndX, arrowEndY - 15);
-        this.ctx.fillText(`${powerPercent}%`, arrowEndX, arrowEndY - 15);
+        
+        // テキストの影
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        this.ctx.fillText(`${powerPercent}%`, arrowEndX + 2, arrowEndY - 18);
+        
+        // メインのテキスト
+        this.ctx.fillStyle = '#fff';
+        this.ctx.fillText(`${powerPercent}%`, arrowEndX, arrowEndY - 20);
+        
+        // 光るエフェクト
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        this.ctx.fillText(`${powerPercent}%`, arrowEndX, arrowEndY - 20);
     }
     
     /**
@@ -584,19 +697,9 @@ class Game {
         
         console.log("選択されたCPUボール:", targetBall);
         
-        // 戦略的な狙いを決定（70%の確率で穴を狙い、30%の確率でプレイヤー側のフィールドを狙う）
-        let targetX, targetY;
-        
-        if (Math.random() < 0.7) {
-            // 穴を狙う（基本戦略）
-            targetX = this.hole.x;
-            targetY = this.hole.y;
-        } else {
-            // プレイヤー側のフィールドを狙う（どん欲な戦略）
-            // プレイヤー側のフィールドのランダムな位置を狙う
-            targetX = this.canvas.width * 0.25; // プレイヤー側フィールドの中央あたり
-            targetY = 100 + Math.random() * (this.canvas.height - 200); // 上下の余白を除いた範囲
-        }
+        // 穴を狙う
+        const targetX = this.hole.x;
+        const targetY = this.hole.y;
         
         // 目標に向かって発射
         const dx = targetX - targetBall.x;
