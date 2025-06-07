@@ -584,14 +584,28 @@ class Game {
         
         console.log("選択されたCPUボール:", targetBall);
         
-        // 穴に向かって発射（まっすぐ穴を狙う）
-        const dx = this.hole.x - targetBall.x;
-        const dy = this.hole.y - targetBall.y;
+        // 戦略的な狙いを決定（70%の確率で穴を狙い、30%の確率でプレイヤー側のフィールドを狙う）
+        let targetX, targetY;
+        
+        if (Math.random() < 0.7) {
+            // 穴を狙う（基本戦略）
+            targetX = this.hole.x;
+            targetY = this.hole.y;
+        } else {
+            // プレイヤー側のフィールドを狙う（どん欲な戦略）
+            // プレイヤー側のフィールドのランダムな位置を狙う
+            targetX = this.canvas.width * 0.25; // プレイヤー側フィールドの中央あたり
+            targetY = 100 + Math.random() * (this.canvas.height - 200); // 上下の余白を除いた範囲
+        }
+        
+        // 目標に向かって発射
+        const dx = targetX - targetBall.x;
+        const dy = targetY - targetBall.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         // 速度を設定（常に最高威力で発射）
-        const speed = 35; // 最大威力を25から35に増加
-        const angleVariation = (Math.random() - 0.5) * 0.1; // わずかなランダム性を残す
+        const speed = 35; // 最大威力
+        const angleVariation = (Math.random() - 0.5) * 0.1; // わずかなランダム性
         
         // 角度にわずかなランダム性を加える
         const angle = Math.atan2(dy, dx) + angleVariation;
