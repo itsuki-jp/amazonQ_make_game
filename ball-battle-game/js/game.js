@@ -349,11 +349,14 @@ class Game {
      * @returns {boolean} - ボールが動いている場合はtrue
      */
     isAnyBallMoving() {
-        const moving = [...this.playerBalls, ...this.cpuBalls].some(ball => ball.isMoving);
-        if (this.debugMode) {
-            console.log("ボールの動き状態:", moving ? "動いている" : "停止している");
+        // 実際に動いているボールの数をカウント（デバッグ用）
+        const movingBalls = [...this.playerBalls, ...this.cpuBalls].filter(ball => ball.isMoving);
+        if (this.debugMode && movingBalls.length > 0) {
+            console.log(`動いているボール: ${movingBalls.length}個`);
         }
-        return moving;
+        
+        // 動いているボールがあるかどうかを返す
+        return movingBalls.length > 0;
     }
     
     /**
@@ -611,11 +614,20 @@ class Game {
                 // 次のCPUの行動をスケジュール（ランダムな待機時間を設定）
                 const waitTime = 1000 + Math.random() * 2000; // 1〜3秒のランダムな待機時間
                 setTimeout(() => {
-                    // 動かせるCPUのボールがあるか再確認
-                    const movableBalls = this.cpuBalls.filter(ball => !ball.scored && !ball.isMoving);
-                    if (!this.gameOver && !this.isAnyBallMoving() && !this.isDragging && movableBalls.length > 0) {
-                        this.forceCPUAction();
-                    } else {
+                    try {
+                        // 動かせるCPUのボールがあるか再確認
+                        const movableBalls = this.cpuBalls.filter(ball => !ball.scored && !ball.isMoving);
+                        console.log("次のCPUアクション: 動かせるボール数", movableBalls.length);
+                        
+                        if (!this.gameOver && !this.isAnyBallMoving() && !this.isDragging && movableBalls.length > 0) {
+                            // 新しいCPUアクションを開始する前にフラグをリセット
+                            this.cpuActionScheduled = false;
+                            this.forceCPUAction();
+                        } else {
+                            this.cpuActionScheduled = false;
+                        }
+                    } catch (error) {
+                        console.error("CPUアクションエラー:", error);
                         this.cpuActionScheduled = false;
                     }
                 }, waitTime);

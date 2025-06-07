@@ -5,11 +5,14 @@
 class PhysicsEngine {
     constructor() {
         this.gravity = 0.25; // 擬似重力（傾斜効果用）- 中央をピークとする傾斜（値を大きくして傾斜を強く）
-        this.friction = 0.97; // 摩擦係数（少し強めに設定）
-        this.restitution = 0.7; // 反発係数（少し弱めに設定）
+        this.friction = 0.95; // 摩擦係数（さらに強めに設定）
+        this.restitution = 0.6; // 反発係数（さらに弱めに設定）
         
         // 境界での衝突回数をカウント
         this.bounceCounters = new Map();
+        
+        // 最後に停止したボールの時間を記録
+        this.lastStopTime = Date.now();
     }
 
     /**
@@ -47,12 +50,13 @@ class PhysicsEngine {
         ball.vy *= this.friction;
 
         // 速度が非常に小さくなったら停止とみなす（閾値を下回ったら0に）
-        const speedThreshold = 0.1; // 閾値を上げる
+        const speedThreshold = 0.2; // 閾値をさらに上げる
         const totalSpeed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
         if (totalSpeed < speedThreshold) {
             ball.vx = 0;
             ball.vy = 0;
             ball.isMoving = false;
+            this.lastStopTime = Date.now(); // 停止時間を記録
             console.log("ボールが停止:", ball);
         }
 
@@ -110,37 +114,38 @@ class PhysicsEngine {
         
         // 左右の境界
         if (ball.x - ball.radius < 0) {
-            ball.x = ball.radius + 2; // より内側に押し出す
-            ball.vx = -ball.vx * this.restitution * 0.8; // 反発係数を小さくして減衰を強める
+            ball.x = ball.radius + 5; // さらに内側に押し出す
+            ball.vx = -ball.vx * this.restitution * 0.5; // 反発係数をさらに小さくする
             collision = true;
             this.bounceCounters.set(ballId, this.bounceCounters.get(ballId) + 1);
         } else if (ball.x + ball.radius > boundaries.width) {
-            ball.x = boundaries.width - ball.radius - 2; // より内側に押し出す
-            ball.vx = -ball.vx * this.restitution * 0.8; // 反発係数を小さくして減衰を強める
+            ball.x = boundaries.width - ball.radius - 5; // さらに内側に押し出す
+            ball.vx = -ball.vx * this.restitution * 0.5; // 反発係数をさらに小さくする
             collision = true;
             this.bounceCounters.set(ballId, this.bounceCounters.get(ballId) + 1);
         }
 
         // 上下の境界
         if (ball.y - ball.radius < 0) {
-            ball.y = ball.radius + 2; // より内側に押し出す
-            ball.vy = -ball.vy * this.restitution * 0.8; // 反発係数を小さくして減衰を強める
+            ball.y = ball.radius + 5; // さらに内側に押し出す
+            ball.vy = -ball.vy * this.restitution * 0.5; // 反発係数をさらに小さくする
             collision = true;
             this.bounceCounters.set(ballId, this.bounceCounters.get(ballId) + 1);
         } else if (ball.y + ball.radius > boundaries.height) {
-            ball.y = boundaries.height - ball.radius - 2; // より内側に押し出す
-            ball.vy = -ball.vy * this.restitution * 0.8; // 反発係数を小さくして減衰を強める
+            ball.y = boundaries.height - ball.radius - 5; // さらに内側に押し出す
+            ball.vy = -ball.vy * this.restitution * 0.5; // 反発係数をさらに小さくする
             collision = true;
             this.bounceCounters.set(ballId, this.bounceCounters.get(ballId) + 1);
         }
         
         // 衝突が発生し、速度が小さい場合または連続衝突回数が多い場合は停止させる
         if (collision) {
-            const speedThreshold = 1.0; // 閾値を上げる
+            const speedThreshold = 2.0; // 閾値をさらに上げる
             const totalSpeed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
             const bounceCount = this.bounceCounters.get(ballId);
             
-            if (totalSpeed < speedThreshold || bounceCount > 5) {
+            // 速度が閾値以下、または3回以上連続で衝突した場合は強制停止
+            if (totalSpeed < speedThreshold || bounceCount >= 3) {
                 ball.vx = 0;
                 ball.vy = 0;
                 ball.isMoving = false;
