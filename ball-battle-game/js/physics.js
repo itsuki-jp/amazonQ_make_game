@@ -5,8 +5,11 @@
 class PhysicsEngine {
     constructor() {
         this.gravity = 0.25; // 擬似重力（傾斜効果用）- 中央をピークとする傾斜（値を大きくして傾斜を強く）
-        this.friction = 0.98; // 摩擦係数
-        this.restitution = 0.8; // 反発係数
+        this.friction = 0.97; // 摩擦係数（少し強めに設定）
+        this.restitution = 0.7; // 反発係数（少し弱めに設定）
+        
+        // 境界での衝突回数をカウント
+        this.bounceCounters = new Map();
     }
 
     /**
@@ -44,8 +47,9 @@ class PhysicsEngine {
         ball.vy *= this.friction;
 
         // 速度が非常に小さくなったら停止とみなす（閾値を下回ったら0に）
-        const speedThreshold = 0.05;
-        if (Math.abs(ball.vx) < speedThreshold && Math.abs(ball.vy) < speedThreshold) {
+        const speedThreshold = 0.1; // 閾値を上げる
+        const totalSpeed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+        if (totalSpeed < speedThreshold) {
             ball.vx = 0;
             ball.vy = 0;
             ball.isMoving = false;
@@ -93,46 +97,59 @@ class PhysicsEngine {
      * @param {Object} boundaries - フィールドの境界
      */
     checkBoundaryCollision(ball, boundaries) {
+        let collision = false;
+        
+        // ボールのIDを取得（なければ作成）
+        const ballId = ball.id || `ball_${Math.random().toString(36).substr(2, 9)}`;
+        ball.id = ballId;
+        
+        // このボールの衝突カウンターを取得または初期化
+        if (!this.bounceCounters.has(ballId)) {
+            this.bounceCounters.set(ballId, 0);
+        }
+        
         // 左右の境界
         if (ball.x - ball.radius < 0) {
-            ball.x = ball.radius;
-            ball.vx = -ball.vx * this.restitution;
-            
-            // 速度が小さい場合は少し内側に押し出して無限バウンスを防止
-            if (Math.abs(ball.vx) < 0.5) {
-                ball.vx = 0;
-                ball.x = ball.radius + 1;
-            }
+            ball.x = ball.radius + 2; // より内側に押し出す
+            ball.vx = -ball.vx * this.restitution * 0.8; // 反発係数を小さくして減衰を強める
+            collision = true;
+            this.bounceCounters.set(ballId, this.bounceCounters.get(ballId) + 1);
         } else if (ball.x + ball.radius > boundaries.width) {
-            ball.x = boundaries.width - ball.radius;
-            ball.vx = -ball.vx * this.restitution;
-            
-            // 速度が小さい場合は少し内側に押し出して無限バウンスを防止
-            if (Math.abs(ball.vx) < 0.5) {
-                ball.vx = 0;
-                ball.x = boundaries.width - ball.radius - 1;
-            }
+            ball.x = boundaries.width - ball.radius - 2; // より内側に押し出す
+            ball.vx = -ball.vx * this.restitution * 0.8; // 反発係数を小さくして減衰を強める
+            collision = true;
+            this.bounceCounters.set(ballId, this.bounceCounters.get(ballId) + 1);
         }
 
         // 上下の境界
         if (ball.y - ball.radius < 0) {
-            ball.y = ball.radius;
-            ball.vy = -ball.vy * this.restitution;
-            
-            // 速度が小さい場合は少し内側に押し出して無限バウンスを防止
-            if (Math.abs(ball.vy) < 0.5) {
-                ball.vy = 0;
-                ball.y = ball.radius + 1;
-            }
+            ball.y = ball.radius + 2; // より内側に押し出す
+            ball.vy = -ball.vy * this.restitution * 0.8; // 反発係数を小さくして減衰を強める
+            collision = true;
+            this.bounceCounters.set(ballId, this.bounceCounters.get(ballId) + 1);
         } else if (ball.y + ball.radius > boundaries.height) {
-            ball.y = boundaries.height - ball.radius;
-            ball.vy = -ball.vy * this.restitution;
+            ball.y = boundaries.height - ball.radius - 2; // より内側に押し出す
+            ball.vy = -ball.vy * this.restitution * 0.8; // 反発係数を小さくして減衰を強める
+            collision = true;
+            this.bounceCounters.set(ballId, this.bounceCounters.get(ballId) + 1);
+        }
+        
+        // 衝突が発生し、速度が小さい場合または連続衝突回数が多い場合は停止させる
+        if (collision) {
+            const speedThreshold = 1.0; // 閾値を上げる
+            const totalSpeed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+            const bounceCount = this.bounceCounters.get(ballId);
             
-            // 速度が小さい場合は少し内側に押し出して無限バウンスを防止
-            if (Math.abs(ball.vy) < 0.5) {
+            if (totalSpeed < speedThreshold || bounceCount > 5) {
+                ball.vx = 0;
                 ball.vy = 0;
-                ball.y = boundaries.height - ball.radius - 1;
+                ball.isMoving = false;
+                this.bounceCounters.set(ballId, 0); // カウンターをリセット
+                console.log("境界衝突で停止:", ball);
             }
+        } else {
+            // 衝突していない場合はカウンターをリセット
+            this.bounceCounters.set(ballId, 0);
         }
     }
 
